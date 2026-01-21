@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Corra Por Você - Gestão Profissional</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* Adicione isso dentro da tag <style> se quiser rolagem lateral na tabela */
+    .table-area {
+            overflow-x: auto; /* Permite deslizar o dedo para os lados na tabela se ela for grande demais */
+}
+        body { 
+            font-family: 'Segoe UI', sans-serif; background: linear-gradient(180deg, #91EAE4,#1DDB91 0%, #4B9BBD 100%);;
+            padding: 20px;
+            display: flex;
+            flex-direction: column; 
+            align-items: center; 
+        }
+
+        /* Supondo que a classe seja .titulo-treino ou a tag h2 */
+        h2 {
+        text-align: center;      /* Centraliza o texto */
+        color: #030b75;          /* Substitua pelo código da cor que desejar */
+        width: 100%;             /* Garante que ocupe a largura total para centralizar */
+        display: block;          /* Garante que ele se comporte como um bloco */
+}
+
+        .container {
+             width: 100%;
+             max-width: 900px; }
+        
+        /* LOGOTIPO */
+        .logo-img {
+            display: block;
+            margin: 0 auto 25px; /* Centraliza e dá espaço abaixo */
+            max-width: 250px;    /* Limita o tamanho para não ficar gigante */
+            height: auto;
+        }
+
+        /* Formulário */
+        .form-container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            margin-bottom: 20px; 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 10px; }
+
+        input, select, button { 
+            padding: 12px; 
+            border: 1px solid #ccc; border-radius: 6px; 
+            outline: none; 
+            font-size: 14px; }
+        
+        /* Botões */
+        .btn-add { 
+            background-color: #4FDB2C; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; }
+
+        .btn-add:hover {
+            background-color: #1b5e20;
+         }
+        .btn-pdf {
+             background-color: #2CDBC2; 
+             color: white;
+             border: none; 
+             cursor: pointer; 
+             font-weight: bold; 
+             margin-bottom: 15px; 
+             width: 100%; 
+            }
+        .btn-delete { 
+            background-color: #2CBBDB; 
+            color: white; 
+            border: none; 
+            padding: 5px 10px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-size: 12px; 
+        }
+        .btn-clear { 
+            background-color: #2CBBDB; 
+            color: white; 
+            margin-top: 20px; 
+            cursor: pointer; 
+            border: none; 
+            padding: 10px; 
+            border-radius: 6px; }
+
+        /* Tabela e Filtro */
+        .search-box { width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #2e7d32; border-radius: 8px; box-sizing: border-box; }
+        .table-area { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background-color: #4FDB2C; color: white; }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: left; }
+        tfoot { background-color: #f1f8e9; font-weight: bold; color: #2e7d32; }
+
+        /* Badge para Categorias */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .bg-corrida { background-color: #2e7d32; }
+        .bg-caminhada { background-color: #fb8c00; }
+
+        /* Esconder no PDF */
+        .no-pdf { display: table-cell; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="imagens/logocorraporvc-removebg-preview.png" alt="Logo Corra por Você" class="logo-img">
+        
+        <h2>LANÇAR TREINO</h2>
+        <form id="cadastroForm" class="form-container">
+            <input type="text" id="nome" placeholder="Nome do Atleta" required>
+            <select id="categoria" required>
+                <option value="" disabled selected>Selecione a Categoria</option>
+                <option value="Corrida">Corrida</option>
+                <option value="Caminhada">Caminhada</option>
+            </select>
+            <input type="number" id="km" placeholder="KM" required>
+            <input type="date" id="data" required>
+            <button type="submit" class="btn-add">Adicionar</button>
+        </form>
+
+        <button onclick="gerarPDF()" class="btn-pdf">📄 Gerar Relatório em PDF</button>
+
+        <input type="text" id="searchInput" class="search-box" placeholder="Filtrar por nome, corrida ou caminhada...">
+
+        <div class="table-area" id="conteudo-pdf">
+            <h3 style="text-align: center; color: #2e7d32;">RELATÓRIO DOS ATLETAS</h3>
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Categoria</th>
+                        <th>KM</th>
+                        <th>Data</th>
+                        <th class="no-print">Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" style="text-align: right;">TOTAL ACUMULADO:</td>
+                        <td id="totalKM">0</td>
+                        <td colspan="2">km</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <button class="btn-clear" onclick="limparDados()">Limpar Todo o Histórico</button>
+    </div>
+
+    <script>
+        const form = document.getElementById('cadastroForm');
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const totalDisplay = document.getElementById('totalKM');
+
+        let atletas = JSON.parse(localStorage.getItem('atletas_ecj')) || [];
+        renderizarTabela();
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const novoAtleta = {
+                id: Date.now(),
+                nome: document.getElementById('nome').value,
+                categoria: document.getElementById('categoria').value,
+                km: parseFloat(document.getElementById('km').value),
+                data: document.getElementById('data').value
+            };
+            atletas.push(novoAtleta);
+            salvarERenderizar();
+            form.reset();
+        });
+
+        function renderizarTabela() {
+            const filtro = searchInput.value.toLowerCase();
+            tableBody.innerHTML = '';
+            let soma = 0;
+
+            atletas.forEach(atleta => {
+                if (atleta.nome.toLowerCase().includes(filtro) || atleta.categoria.toLowerCase().includes(filtro)) {
+                    const badgeClass = atleta.categoria === 'Corrida' ? 'bg-corrida' : 'bg-caminhada';
+                    
+                    const row = `<tr>
+                        <td><strong>${atleta.nome}</strong></td>
+                        <td><span class="badge ${badgeClass}">${atleta.categoria}</span></td>
+                        <td>${atleta.km}</td>
+                        <td>${atleta.data.split('-').reverse().join('/')}</td>
+                        <td class="no-print"><button class="btn-delete" onclick="removerItem(${atleta.id})">Excluir</button></td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                    soma += atleta.km;
+                }
+            });
+            totalDisplay.innerText = soma;
+        }
+
+        function removerItem(id) {
+            if(confirm("Deseja excluir este registro?")) {
+                atletas = atletas.filter(a => a.id !== id);
+                salvarERenderizar();
+            }
+        }
+
+        function salvarERenderizar() {
+            localStorage.setItem('atletas_ecj', JSON.stringify(atletas));
+            renderizarTabela();
+        }
+
+        function limparDados() {
+            if(confirm("Deseja apagar todos os registros permanentemente?")) {
+                atletas = [];
+                salvarERenderizar();
+            }
+        }
+
+        function gerarPDF() {
+            const elemento = document.getElementById('conteudo-pdf');
+            const botoesExcluir = document.querySelectorAll('.no-print');
+            
+            botoesExcluir.forEach(el => el.style.display = 'none');
+
+            const options = {
+                margin: 10,
+                filename: 'relatorio_ecj.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(options).from(elemento).save().then(() => {
+                botoesExcluir.forEach(el => el.style.display = 'table-cell');
+            });
+        }
+
+        searchInput.addEventListener('keyup', renderizarTabela);
+    </script>
+</body>
+</html>
